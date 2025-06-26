@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with rounded corners -->
+  <rect x="0" y="0" width="1024" height="1024" rx="240" ry="240" fill="#1a1a1a"/>
+  
+  <!-- Gradient definitions -->
+  <defs>
+    <radialGradient id="glowGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#34c759;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#34c759;stop-opacity:0" />
+    </radialGradient>
+    
+    <linearGradient id="antennaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#40d468" />
+      <stop offset="100%" style="stop-color:#34c759" />
+    </linearGradient>
+    
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Subtle glow effect -->
+  <circle cx="512" cy="512" r="300" fill="url(#glowGradient)" opacity="0.5"/>
+  
+  <!-- Antenna base (centered) -->
+  <circle cx="512" cy="512" r="90" fill="#34c759" filter="url(#glow)"/>
+  
+  <!-- Antenna tower (centered) -->
+  <rect x="480" y="410" width="64" height="280" rx="32" ry="32" fill="url(#antennaGradient)" filter="url(#glow)"/>
+  
+  <!-- Radio waves - Left side (centered around 512) -->
+  <path d="M 320 512 A 230 230 0 0 1 400 380" fill="none" stroke="#34c759" stroke-width="28" opacity="0.9" stroke-linecap="round"/>
+  <path d="M 240 512 A 310 310 0 0 1 350 320" fill="none" stroke="#40d468" stroke-width="24" opacity="0.7" stroke-linecap="round"/>
+  <path d="M 160 512 A 390 390 0 0 1 300 260" fill="none" stroke="#4ae577" stroke-width="20" opacity="0.5" stroke-linecap="round"/>
+  <path d="M 80 512 A 470 470 0 0 1 250 200" fill="none" stroke="#54f686" stroke-width="16" opacity="0.3" stroke-linecap="round"/>
+  
+  <!-- Radio waves - Right side (centered around 512) -->
+  <path d="M 704 512 A 230 230 0 0 0 624 380" fill="none" stroke="#34c759" stroke-width="28" opacity="0.9" stroke-linecap="round"/>
+  <path d="M 784 512 A 310 310 0 0 0 674 320" fill="none" stroke="#40d468" stroke-width="24" opacity="0.7" stroke-linecap="round"/>
+  <path d="M 864 512 A 390 390 0 0 0 724 260" fill="none" stroke="#4ae577" stroke-width="20" opacity="0.5" stroke-linecap="round"/>
+  <path d="M 944 512 A 470 470 0 0 0 774 200" fill="none" stroke="#54f686" stroke-width="16" opacity="0.3" stroke-linecap="round"/>
+  
+  <!-- Central active indicator (at center) -->
+  <circle cx="512" cy="512" r="50" fill="#ffffff" stroke="#34c759" stroke-width="10" filter="url(#glow)"/>
+  <circle cx="512" cy="512" r="25" fill="#34c759" opacity="0.8"/>
+  
+  <!-- Antenna highlight (centered) -->
+  <ellipse cx="512" cy="440" rx="30" ry="50" fill="#ffffff" opacity="0.4"/>
+  
+  <!-- Additional small indicators for "active" state (centered) -->
+  <circle cx="440" cy="520" r="8" fill="#34c759" opacity="0.6"/>
+  <circle cx="584" cy="520" r="8" fill="#34c759" opacity="0.6"/>
+  <circle cx="470" cy="580" r="6" fill="#40d468" opacity="0.5"/>
+  <circle cx="554" cy="580" r="6" fill="#40d468" opacity="0.5"/>
+</svg>
