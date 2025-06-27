@@ -7,7 +7,7 @@
 A modern macOS menu bar application for dynamic HTTP/TCP proxy server port switching. Perfect for developers who need to quickly switch between different local development servers.
 
 <p align="center">
-  <img src="assets/icons/AppIcon.png" alt="SwitchProxyPort Icon" width="128">
+  <img src="./assets/AppIcon.png" alt="SwitchProxyPort Icon" width="128">
 </p>
 
 ## 📸 Screenshots
