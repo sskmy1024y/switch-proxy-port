@@ -82,39 +82,73 @@ hdiutil create -srcfolder "$TEMP_DIR" \
 
 # Mount the DMG for customization
 echo "🔧 Mounting DMG for customization..."
-MOUNT_DIR=$(mktemp -d)
-hdiutil attach "$TEMP_DMG" -readwrite -noautoopen -mountpoint "$MOUNT_DIR"
+# Capture the full output and extract device info
+ATTACH_OUTPUT=$(hdiutil attach "$TEMP_DMG" -readwrite -noautoopen)
+# Extract the base device (e.g., /dev/disk9 from /dev/disk9s1)
+DEVICE=$(echo "$ATTACH_OUTPUT" | awk '/Apple_HFS/ {print $1}' | sed 's/s[0-9]*$//')
+MOUNT_POINT="/Volumes/$VOLUME_NAME"
 
-# Set DMG window properties (if possible)
-echo "🎨 Customizing DMG appearance..."
-if command -v osascript &> /dev/null; then
-    osascript << EOF
+# Debug output
+echo "Attach output: $ATTACH_OUTPUT"
+echo "Extracted device: $DEVICE"
+echo "Mount point: $MOUNT_POINT"
+
+# Wait for mount to complete
+sleep 2
+
+# Verify mount point exists
+if [ ! -d "$MOUNT_POINT" ]; then
+    echo "⚠️  Mount point not found at expected location, skipping customization"
+else
+    # Set DMG window properties (if possible)
+    echo "🎨 Customizing DMG appearance..."
+    if command -v osascript &> /dev/null; then
+        osascript << EOF
 tell application "Finder"
-    tell disk "$VOLUME_NAME"
-        open
-        set current view of container window to icon view
-        set toolbar visible of container window to false
-        set statusbar visible of container window to false
-        set the bounds of container window to {100, 100, 600, 400}
-        set theViewOptions to the icon view options of container window
-        set arrangement of theViewOptions to not arranged
-        set icon size of theViewOptions to 128
-        set background picture of theViewOptions to file "background.png"
-        delay 2
-        set position of item "$APP_NAME.app" of container window to {150, 200}
-        set position of item "Applications" of container window to {350, 200}
-        close
-        open
-        update without registering applications
-        delay 5
-    end tell
+    try
+        tell disk "$VOLUME_NAME"
+            open
+            set current view of container window to icon view
+            set toolbar visible of container window to false
+            set statusbar visible of container window to false
+            set the bounds of container window to {100, 100, 600, 400}
+            set theViewOptions to the icon view options of container window
+            set arrangement of theViewOptions to not arranged
+            set icon size of theViewOptions to 128
+            delay 1
+            set position of item "$APP_NAME.app" of container window to {150, 200}
+            set position of item "Applications" of container window to {350, 200}
+            update without registering applications
+            delay 2
+            close
+        end tell
+    on error errMsg
+        -- Ignore errors during customization
+        -- echo "AppleScript error (ignored): " & errMsg
+    end try
 end tell
 EOF
+    fi
 fi
 
 # Unmount DMG
 echo "📤 Unmounting DMG..."
-hdiutil detach "$MOUNT_DIR"
+
+# Try unmounting by mount point first (more reliable)
+if [ -d "$MOUNT_POINT" ]; then
+    echo "Unmounting $MOUNT_POINT..."
+    diskutil unmount "$MOUNT_POINT" 2>/dev/null || true
+    sleep 2
+fi
+
+# Then try to detach the device if it still exists
+if [ -n "$DEVICE" ]; then
+    echo "Detaching device $DEVICE..."
+    hdiutil detach "$DEVICE" -quiet 2>/dev/null || hdiutil detach "$DEVICE" -force 2>/dev/null || true
+fi
+
+# Extra wait to ensure resources are released
+sleep 3
 
 # Convert to read-only compressed DMG
 echo "🗜️  Converting to compressed DMG..."
