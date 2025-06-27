@@ -1,10 +1,34 @@
 import SwiftUI
 import Foundation
+import AppKit
 
 // Port formatting helper
 extension Int {
     var portString: String {
         return String(self)
+    }
+}
+
+// Pointer cursor on hover modifier
+struct PointerOnHoverModifier: ViewModifier {
+    @State private var isHovering = false
+    
+    func body(content: Content) -> some View {
+        content
+            .onHover { hovering in
+                isHovering = hovering
+                if hovering {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+    }
+}
+
+extension View {
+    func pointerOnHover() -> some View {
+        self.modifier(PointerOnHoverModifier())
     }
 }
 
@@ -107,9 +131,10 @@ struct PopoverContentView: View {
                         }
                     }) {
                         Image(systemName: proxyServer.isRunning ? "power.circle.fill" : "power.circle")
-                            .font(.title2)
+                            .font(.title)
                             .foregroundColor(proxyServer.isRunning ? .green : .gray)
-                            .scaleEffect(showingAnimation ? 1.1 : 1.0)
+                            .scaleEffect(showingAnimation ? 1.2 : 1.0)
+                            .frame(width: 32, height: 32)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .onHover { hovering in
@@ -117,6 +142,7 @@ struct PopoverContentView: View {
                             showingAnimation = hovering
                         }
                     }
+                    .pointerOnHover()
                 }
             }
             .padding(12)
@@ -228,6 +254,7 @@ struct PopoverContentView: View {
                     .foregroundColor(.secondary)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .pointerOnHover()
                 
                 Spacer()
                 
@@ -241,6 +268,7 @@ struct PopoverContentView: View {
                     .foregroundColor(.red)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .pointerOnHover()
             }
             .padding(.horizontal, 12)
             .padding(.bottom, 12)
@@ -303,6 +331,7 @@ struct PortButtonView: View {
             .animation(.easeInOut(duration: 0.15), value: isHovered)
         }
         .buttonStyle(PlainButtonStyle())
+        .pointerOnHover()
     }
     
     private var backgroundColor: Color {

@@ -7,7 +7,7 @@
 A modern macOS menu bar application for dynamic HTTP/TCP proxy server port switching. Perfect for developers who need to quickly switch between different local development servers.
 
 <p align="center">
-  <img src="assets/icons/app_icon.png" alt="SwitchProxyPort Icon" width="128">
+  <img src="assets/icons/AppIcon.png" alt="SwitchProxyPort Icon" width="128">
 </p>
 
 ## 📸 Screenshots
@@ -45,7 +45,7 @@ git clone https://github.com/sskmy1024y/switch-proxy-port.git
 cd switch-proxy-port
 
 # Build the application
-cd SwitchProxyPortSPM
+cd SwitchProxyPort
 ./build-app.sh
 
 # Launch the app
@@ -56,7 +56,7 @@ open SwitchProxyPort.app
 ```bash
 # Clone and run in development mode
 git clone https://github.com/sskmy1024y/switch-proxy-port.git
-cd switch-proxy-port/SwitchProxyPortSPM
+cd switch-proxy-port/SwitchProxyPort
 ./run.sh
 ```
 
@@ -131,7 +131,7 @@ git clone <repository-url>
 cd switch-proxy-port
 
 # Build debug version
-cd SwitchProxyPortSPM
+cd SwitchProxyPort
 swift build
 
 # Run in development mode
@@ -139,8 +139,7 @@ swift build
 ```
 
 ### Project Structure
-- **SwitchProxyPortSPM/**: Swift Package Manager project
-- **SwitchProxyPort/**: Legacy Xcode project
+- **SwitchProxyPort/**: Swift Package Manager project
 - **assets/**: Application icons and resources
 - **DESIGN_SPEC.md**: Detailed technical specifications
 

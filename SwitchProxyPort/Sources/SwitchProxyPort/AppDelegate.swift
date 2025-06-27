@@ -30,7 +30,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func loadConfiguration() {
         let config = configManager.currentConfig
-        updateProxyServer(with: config)
+        
+        // 自動有効化が設定されている場合はプロキシを有効にする
+        if config.autoStart && !config.isEnabled {
+            configManager.toggleProxyEnabled()
+        }
+        
+        updateProxyServer(with: configManager.currentConfig)
     }
     
     private func updateProxyServer(with config: ProxyConfig) {

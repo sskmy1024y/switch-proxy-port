@@ -15,6 +15,7 @@ class ModernPreferencesWindowController: NSWindowController {
     private var targetPortsTableView: NSTableView!
     private var addPortTextField: NSTextField!
     private var autoStartCheckbox: NSButton!
+    private var launchAtLoginCheckbox: NSButton!
     private var statusLabel: NSTextField!
     
     private var targetPorts: [Int] = []
@@ -244,11 +245,17 @@ class ModernPreferencesWindowController: NSWindowController {
     private func createSettingsSection() {
         let sectionView = createSectionContainer(title: "General", description: "Application behavior settings")
         
+        launchAtLoginCheckbox = NSButton()
+        launchAtLoginCheckbox.setButtonType(.switch)
+        launchAtLoginCheckbox.title = "Launch at login"
+        launchAtLoginCheckbox.font = NSFont.systemFont(ofSize: 13)
+        
         autoStartCheckbox = NSButton()
         autoStartCheckbox.setButtonType(.switch)
-        autoStartCheckbox.title = "Start automatically when you log in"
+        autoStartCheckbox.title = "Auto-start proxy on app launch"
         autoStartCheckbox.font = NSFont.systemFont(ofSize: 13)
         
+        sectionView.addArrangedSubview(launchAtLoginCheckbox)
         sectionView.addArrangedSubview(autoStartCheckbox)
         stackView.addArrangedSubview(sectionView)
     }
@@ -323,6 +330,7 @@ class ModernPreferencesWindowController: NSWindowController {
         listenPortTextField.intValue = Int32(config.listenPort)
         targetPorts = config.targetPorts
         autoStartCheckbox.state = config.autoStart ? .on : .off
+        launchAtLoginCheckbox.state = LaunchAtLoginHelper.shared.isEnabled ? .on : .off
         targetPortsTableView.reloadData()
     }
     
@@ -385,6 +393,9 @@ class ModernPreferencesWindowController: NSWindowController {
         configManager.currentConfig.listenPort = listenPort
         configManager.currentConfig.targetPorts = targetPorts
         configManager.currentConfig.autoStart = autoStartCheckbox.state == .on
+        
+        // Handle launch at login setting
+        LaunchAtLoginHelper.shared.isEnabled = launchAtLoginCheckbox.state == .on
         
         // Ensure active target port is valid
         if !configManager.currentConfig.targetPorts.contains(configManager.currentConfig.currentTargetPort) {

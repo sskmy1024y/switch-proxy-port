@@ -163,36 +163,65 @@ cat > "$ICONSET_DIR/Contents.json" << EOF
 }
 EOF
 
-# Generate proper app icons
-echo "🖼️  Generating app icons..."
-if [ -f "./create-app-icon.sh" ]; then
-    source ./create-app-icon.sh "$ICONSET_DIR"
-    ICON_RESULT=$?
+# Use the new CenteredAppIcon.icns if available
+echo "🖼️  Setting up app icon..."
+# First check for Resources/AppIcon.png
+if [ -f "Resources/AppIcon.png" ]; then
+    echo "✅ Using Resources/AppIcon.png"
+    # Create temporary iconset
+    mkdir -p "$ICONSET_DIR"
+    
+    # Generate all required sizes
+    sips -z 16 16     Resources/AppIcon.png --out "$ICONSET_DIR/icon_16x16.png" >/dev/null 2>&1
+    sips -z 32 32     Resources/AppIcon.png --out "$ICONSET_DIR/icon_16x16@2x.png" >/dev/null 2>&1
+    sips -z 32 32     Resources/AppIcon.png --out "$ICONSET_DIR/icon_32x32.png" >/dev/null 2>&1
+    sips -z 64 64     Resources/AppIcon.png --out "$ICONSET_DIR/icon_32x32@2x.png" >/dev/null 2>&1
+    sips -z 128 128   Resources/AppIcon.png --out "$ICONSET_DIR/icon_128x128.png" >/dev/null 2>&1
+    sips -z 256 256   Resources/AppIcon.png --out "$ICONSET_DIR/icon_128x128@2x.png" >/dev/null 2>&1
+    sips -z 256 256   Resources/AppIcon.png --out "$ICONSET_DIR/icon_256x256.png" >/dev/null 2>&1
+    sips -z 512 512   Resources/AppIcon.png --out "$ICONSET_DIR/icon_256x256@2x.png" >/dev/null 2>&1
+    sips -z 512 512   Resources/AppIcon.png --out "$ICONSET_DIR/icon_512x512.png" >/dev/null 2>&1
+    sips -z 1024 1024 Resources/AppIcon.png --out "$ICONSET_DIR/icon_512x512@2x.png" >/dev/null 2>&1
+    
+    # Convert to icns
+    iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/AppIcon.icns" 2>/dev/null
+    rm -rf "$ICONSET_DIR"
+elif [ -f "../assets/icons/CenteredAppIcon.icns" ]; then
+    echo "✅ Using CenteredAppIcon.icns"
+    cp "../assets/icons/CenteredAppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+    rm -rf "$ICONSET_DIR"
 else
-    echo "⚠️  create-app-icon.sh not found, creating placeholder icons..."
-    for size in "16x16" "16x16@2x" "32x32" "32x32@2x" "128x128" "128x128@2x" "256x256" "256x256@2x" "512x512" "512x512@2x"; do
-        touch "$ICONSET_DIR/icon_$size.png"
-    done
-    ICON_RESULT=1
-fi
-
-# Convert iconset to icns (if iconutil is available and we have valid icons)
-if command -v iconutil &> /dev/null && [ $ICON_RESULT -eq 0 ]; then
-    echo "🎯 Converting iconset to icns..."
-    if iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/AppIcon.icns" 2>/dev/null; then
-        echo "✅ Successfully created AppIcon.icns"
-        rm -rf "$ICONSET_DIR"
+    # Fall back to generating icons
+    echo "⚠️  CenteredAppIcon.icns not found, generating app icons..."
+    if [ -f "./create-app-icon.sh" ]; then
+        source ./create-app-icon.sh "$ICONSET_DIR"
+        ICON_RESULT=$?
     else
-        echo "⚠️  Failed to convert iconset to icns, keeping iconset folder"
+        echo "⚠️  create-app-icon.sh not found, creating placeholder icons..."
+        for size in "16x16" "16x16@2x" "32x32" "32x32@2x" "128x128" "128x128@2x" "256x256" "256x256@2x" "512x512" "512x512@2x"; do
+            touch "$ICONSET_DIR/icon_$size.png"
+        done
+        ICON_RESULT=1
+    fi
+
+    # Convert iconset to icns (if iconutil is available and we have valid icons)
+    if command -v iconutil &> /dev/null && [ $ICON_RESULT -eq 0 ]; then
+        echo "🎯 Converting iconset to icns..."
+        if iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/AppIcon.icns" 2>/dev/null; then
+            echo "✅ Successfully created AppIcon.icns"
+            rm -rf "$ICONSET_DIR"
+        else
+            echo "⚠️  Failed to convert iconset to icns, keeping iconset folder"
+            echo "📝 You can manually replace icons in: $ICONSET_DIR"
+        fi
+    else
+        if [ $ICON_RESULT -ne 0 ]; then
+            echo "⚠️  Skipping ICNS conversion due to icon generation issues"
+        else
+            echo "⚠️  iconutil not available, keeping iconset folder"
+        fi
         echo "📝 You can manually replace icons in: $ICONSET_DIR"
     fi
-else
-    if [ $ICON_RESULT -ne 0 ]; then
-        echo "⚠️  Skipping ICNS conversion due to icon generation issues"
-    else
-        echo "⚠️  iconutil not available, keeping iconset folder"
-    fi
-    echo "📝 You can manually replace icons in: $ICONSET_DIR"
 fi
 
 # Set permissions
@@ -243,4 +272,3 @@ else
     echo "❌ Failed to create app bundle"
     exit 1
 fi
-EOF

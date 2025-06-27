@@ -50,4 +50,8 @@ class ConfigManager: ObservableObject {
     func toggleProxyEnabled() {
         currentConfig.isEnabled.toggle()
     }
+    
+    func setAutoStart(_ enabled: Bool) {
+        currentConfig.autoStart = enabled
+    }
 }
