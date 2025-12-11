@@ -73,9 +73,12 @@ class PopoverController: NSObject {
         )
         
         let hostingController = NSHostingController(rootView: contentView)
+        if #available(macOS 13.0, *) {
+            hostingController.sizingOptions = [.preferredContentSize]
+        }
         
         popover = NSPopover()
-        popover?.contentSize = NSSize(width: 280, height: 290)
+        popover?.contentSize = NSSize(width: 280, height: 0)
         popover?.behavior = .transient
         popover?.contentViewController = hostingController
         popover?.delegate = self

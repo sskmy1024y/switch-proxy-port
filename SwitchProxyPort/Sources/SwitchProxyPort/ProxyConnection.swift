@@ -8,9 +8,14 @@ class ProxyConnection: Hashable {
     private let targetPort: Int
     private let queue: DispatchQueue
     private let id = UUID()
-    
+
+    // State management to prevent duplicate delegate calls
+    private var isCancelled = false
+    private var hasNotifiedDelegate = false
+    private let stateLock = NSLock()
+
     weak var delegate: ProxyConnectionDelegate?
-    
+
     init(clientConnection: NWConnection, targetHost: String, targetPort: Int, queue: DispatchQueue) {
         self.clientConnection = clientConnection
         self.targetHost = targetHost
@@ -32,8 +37,42 @@ class ProxyConnection: Hashable {
     }
     
     func cancel() {
+        stateLock.lock()
+        guard !isCancelled else {
+            stateLock.unlock()
+            return
+        }
+        isCancelled = true
+        stateLock.unlock()
+
         clientConnection.cancel()
         serverConnection?.cancel()
+    }
+
+    /// Safely notify delegate only once
+    private func notifyClose() {
+        stateLock.lock()
+        guard !hasNotifiedDelegate else {
+            stateLock.unlock()
+            return
+        }
+        hasNotifiedDelegate = true
+        stateLock.unlock()
+
+        delegate?.proxyConnectionDidClose(self)
+    }
+
+    /// Safely notify delegate of failure only once
+    private func notifyFailure(_ error: Error) {
+        stateLock.lock()
+        guard !hasNotifiedDelegate else {
+            stateLock.unlock()
+            return
+        }
+        hasNotifiedDelegate = true
+        stateLock.unlock()
+
+        delegate?.proxyConnectionDidFail(self, error: error)
     }
     
     private func connectToTarget() {
@@ -55,83 +94,129 @@ class ProxyConnection: Hashable {
     }
     
     private func handleClientConnectionState(_ state: NWConnection.State) {
+        // Skip if already cancelled
+        stateLock.lock()
+        let cancelled = isCancelled
+        stateLock.unlock()
+        if cancelled && state != .cancelled { return }
+
         switch state {
         case .ready:
             print("🔗 ProxyConnection: Client connection ready")
             startReceivingFromClient()
         case .failed(let error):
             print("❌ ProxyConnection: Client connection failed: \(error)")
-            delegate?.proxyConnectionDidFail(self, error: error)
+            cancel()
+            notifyFailure(error)
         case .cancelled:
             print("🚫 ProxyConnection: Client connection cancelled")
-            delegate?.proxyConnectionDidClose(self)
+            notifyClose()
         default:
             break
         }
     }
-    
+
     private func handleServerConnectionState(_ state: NWConnection.State) {
+        // Skip if already cancelled
+        stateLock.lock()
+        let cancelled = isCancelled
+        stateLock.unlock()
+        if cancelled && state != .cancelled { return }
+
         switch state {
         case .ready:
             print("🎯 ProxyConnection: Server connection ready to \(targetHost):\(targetPort)")
             startReceivingFromServer()
         case .failed(let error):
             print("❌ ProxyConnection: Server connection failed: \(error)")
-            delegate?.proxyConnectionDidFail(self, error: error)
+            cancel()
+            notifyFailure(error)
         case .cancelled:
             print("🚫 ProxyConnection: Server connection cancelled")
-            delegate?.proxyConnectionDidClose(self)
+            notifyClose()
         default:
             break
         }
     }
     
     private func startReceivingFromClient() {
+        // Check if already cancelled before receiving
+        stateLock.lock()
+        let cancelled = isCancelled
+        stateLock.unlock()
+        if cancelled { return }
+
         clientConnection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
             guard let self = self else { return }
-            
+
+            // Check if cancelled during receive
+            self.stateLock.lock()
+            let wasCancelled = self.isCancelled
+            self.stateLock.unlock()
+            if wasCancelled { return }
+
             if let error = error {
-                self.delegate?.proxyConnectionDidFail(self, error: error)
+                self.cancel()
+                self.notifyFailure(error)
                 return
             }
-            
+
             if let data = data, !data.isEmpty {
                 print("⬆️ ProxyConnection: Forwarding \(data.count) bytes from client to server")
-                self.serverConnection?.send(content: data, completion: .contentProcessed { error in
-                    if let error = error {
-                        print("❌ ProxyConnection: Failed to send data to server: \(error)")
+                self.serverConnection?.send(content: data, completion: .contentProcessed { sendError in
+                    if let sendError = sendError {
+                        print("❌ ProxyConnection: Failed to send data to server: \(sendError)")
+                        self.cancel()
+                        self.notifyFailure(sendError)
                     }
                 })
             }
-            
+
             if isComplete {
-                self.delegate?.proxyConnectionDidClose(self)
+                self.cancel()
+                self.notifyClose()
             } else {
                 self.startReceivingFromClient()
             }
         }
     }
-    
+
     private func startReceivingFromServer() {
+        // Check if already cancelled before receiving
+        stateLock.lock()
+        let cancelled = isCancelled
+        stateLock.unlock()
+        if cancelled { return }
+
         serverConnection?.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
             guard let self = self else { return }
-            
+
+            // Check if cancelled during receive
+            self.stateLock.lock()
+            let wasCancelled = self.isCancelled
+            self.stateLock.unlock()
+            if wasCancelled { return }
+
             if let error = error {
-                self.delegate?.proxyConnectionDidFail(self, error: error)
+                self.cancel()
+                self.notifyFailure(error)
                 return
             }
-            
+
             if let data = data, !data.isEmpty {
                 print("⬇️ ProxyConnection: Forwarding \(data.count) bytes from server to client")
-                self.clientConnection.send(content: data, completion: .contentProcessed { error in
-                    if let error = error {
-                        print("❌ ProxyConnection: Failed to send data to client: \(error)")
+                self.clientConnection.send(content: data, completion: .contentProcessed { sendError in
+                    if let sendError = sendError {
+                        print("❌ ProxyConnection: Failed to send data to client: \(sendError)")
+                        self.cancel()
+                        self.notifyFailure(sendError)
                     }
                 })
             }
-            
+
             if isComplete {
-                self.delegate?.proxyConnectionDidClose(self)
+                self.cancel()
+                self.notifyClose()
             } else {
                 self.startReceivingFromServer()
             }

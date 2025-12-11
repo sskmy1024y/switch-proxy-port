@@ -274,7 +274,8 @@ struct PopoverContentView: View {
             .padding(.bottom, 12)
         }
         .padding(.top, 12)
-        .frame(width: 280, height: 290)
+        .frame(width: 280)
+        .fixedSize(horizontal: false, vertical: true)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(NSColor.windowBackgroundColor))

@@ -7,6 +7,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var popoverController: PopoverController?
     private var proxyServer: ProxyServer?
     private var configManager = ConfigManager.shared
+    private var errorNotificationTimer: Timer?
+    private var lastErrorTime: Date?
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         setupUI()
@@ -69,6 +71,28 @@ extension AppDelegate: ProxyServerDelegate {
     
     func proxyServerDidEncounterError(_ error: Error) {
         print("Proxy server error: \(error)")
+        // Don't show notifications for individual errors - auto-recovery will handle them
+    }
+    
+    func proxyServerDidRecover(after attempt: Int) {
+        print("✅ Proxy server recovered after \(attempt) attempt(s)")
+    }
+    
+    func proxyServerWillRestart(attempt: Int, maxAttempts: Int) {
+        print("🔄 Proxy server restarting (attempt \(attempt)/\(maxAttempts))")
+    }
+    
+    @objc private func handleCrash() {
+        // Log crash information
+        print("❌ Application crash detected. Attempting recovery...")
+        
+        // Stop and restart proxy server
+        proxyServer?.stop()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self else { return }
+            self.updateProxyServer(with: self.configManager.currentConfig)
+        }
     }
 }
 
